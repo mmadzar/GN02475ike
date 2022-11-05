@@ -9,12 +9,12 @@
 class IBus
 {
 private:
-  MonitorMessage *monitored[5];
   Bytes2WiFi *b2w;
+  MonitorMessage *monitored[5];
 
 public:
   IBus();
-  void setup(Bytes2WiFi* wifiport);
+  void setup(Bytes2WiFi &wifiport);
   void handle();
   IbusTrx ibusTrx;
 };

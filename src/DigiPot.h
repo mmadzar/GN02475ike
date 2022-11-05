@@ -9,7 +9,6 @@
 #include <SPI.h>
 #include "appconfig.h"
 #include "status.h"
-#include "shared/MqttPubSub.h"
 
 class DigiPot
 {
@@ -25,13 +24,12 @@ private:
   int minDiffPos[2][5] = {{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}}; // minimum difference values for group 1 and 2
   bool existsRes(int value, int currentPos);
   void calibratePot(); // internal calibrate logic
-  MqttPubSub mc;
 
 public:
   int resVal[358][7]; // R1 wiper position, R2 wp, Rt, estimated litres 1, estimated litres 2 (litres * 10), ike reported litres for 1 and for 2
   DigiPot();
   void init();
-  void setup(class MqttPubSub &mqtt_client);
+  void setup();
   void handle();
   void seedResistorValues();
   void writePot(gpio_num_t CS, uint8_t channel, uint8_t value);

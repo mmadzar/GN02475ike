@@ -2,16 +2,14 @@
 
 #include "DigiPot.h"
 
-MqttPubSub *mqttClientDigipot;
-
 DigiPot::DigiPot()
 {
 }
 
-void DigiPot::setup(class MqttPubSub &mqtt_client)
+void DigiPot::setup()
 {
   Serial.println("setup digipot mqtt");
-  mqttClientDigipot = &mqtt_client;
+
   // setup initial minimum difference values against target litres value
   for (size_t i = 0; i < 2; i++)
   {

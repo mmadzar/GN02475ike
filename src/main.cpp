@@ -164,11 +164,11 @@ void setup()
   pinMode(pinsSettings.led, OUTPUT);
   wota.setupWiFi();
   wota.setupOTA();
-  ibus.setup(&bytesWiFi);
+  ibus.setup(bytesWiFi);
   mqtt.setup();
   sensors.setup(mqtt);
   bytesWiFi.setup();
-  dpot.setup(mqtt);
+  dpot.setup();
 }
 
 void loop()
@@ -195,7 +195,7 @@ void loop()
   {
     lastLoopReport = status.currentMillis;
     status.loops = loops;
-    Serial.println(loops);
+    Serial.printf("Loops in a seccond %u\n", loops);
     loops = 0;
   }
   loops++;

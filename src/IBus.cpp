@@ -51,9 +51,9 @@ IBus::IBus()
 {
 }
 
-void IBus::setup(Bytes2WiFi *wifiport)
+void IBus::setup(Bytes2WiFi &wifiport)
 {
-  b2w = wifiport;
+  b2w = &wifiport;
   // MID BC display size - 11 chars
   // IKE display size - 20 chars
 
@@ -154,6 +154,7 @@ void IBus::handle()
           monitored[i]->timestamp = status.currentMillis;
           // detected message
           b2w->addBuffer('X');
+          status.receivedCount++;
         }
       }
 
@@ -178,7 +179,6 @@ void IBus::handle()
       for (int c = 0; c < mlength; c++)
         b2w->addBuffer(m.b(c));
       b2w->addBuffer(0);
-      b2w->send();
 
       // sprintf((char *)&status.busBytes[status.busBytesSize], "\r\n");
       // status.busBytesSize += 2;
@@ -233,9 +233,6 @@ void IBus::handle()
 
   if (status.ibusSend[1] != 0x00)
   {
-    Serial.printf("Ibus sending %s...\n", status.ibusSend);
-    b2w->addBuffer("sending...", 10);
-    b2w->send();
     ibusTrx.write(status.ibusSend);
     status.ibusSend[1] = 0x00;
   }

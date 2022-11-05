@@ -8,6 +8,7 @@
         "*.scss.liquid": "liquid-scss",
         "*.liquid": "csharp",
         "istream": "cpp",
-        "ostream": "cpp"
+        "ostream": "cpp",
+        "new": "cpp"
     }
 }
