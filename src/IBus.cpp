@@ -51,8 +51,9 @@ IBus::IBus()
 {
 }
 
-void IBus::setup()
+void IBus::setup(Bytes2WiFi *wifiport)
 {
+  b2w = wifiport;
   // MID BC display size - 11 chars
   // IKE display size - 20 chars
 
@@ -138,22 +139,6 @@ void IBus::handle()
 
     if (msize > 0)
     {
-
-      // // send to WiFi
-      // if (status.busBytesSize > 1950)
-      //   status.busBytesSize = 0;
-      // status.busBytes[status.busBytesSize++] = m.source();
-      // status.busBytes[status.busBytesSize++] = m.length();
-      // status.busBytes[status.busBytesSize++] = m.destination();
-
-      // for (size_t k = 0; k < msize; k++)
-      // {
-      //   status.busBytes[status.busBytesSize++] = m.b(k);
-      // }
-
-      if (status.ledMode != 2)
-        status.ledMode = 2;
-
       tempBusMsg[0] = m.source();
       tempBusMsg[1] = m.length();
       tempBusMsg[2] = m.destination();
@@ -167,41 +152,34 @@ void IBus::handle()
           monitored[i]->received = true;
           monitored[i]->replaced = false;
           monitored[i]->timestamp = status.currentMillis;
-
-          // if (status.busBytesSize > 2040)
-          //   status.busBytesSize = 0;
-          // status.busBytes[status.busBytesSize++] = 0xAA;
-          // status.busBytes[status.busBytesSize++] = i;
-          // status.busBytes[status.busBytesSize++] = 0xAA;
+          // detected message
+          b2w->addBuffer('X');
         }
       }
 
       // format for sending to parse by SavvyCan
       uint32_t frameId = m.source();
       frameId |= 1 << 31;
-      uint8_t mlength = m.length();
-      if ((20 + mlength + status.busBytesSize) > 2045)
-      {
-        status.busBytesSize = 0;
-      }
-      status.busBytes[status.busBytesSize++] = 0xF1;
-      status.busBytes[status.busBytesSize++] = 0; // 0 = canbus frame sending
+      uint8_t mlength = msize + 1;
+
+      b2w->addBuffer(0xf1);
+      b2w->addBuffer(0x00); // 0 = canbus frame sending
       uint32_t now = micros();
-      status.busBytes[status.busBytesSize++] = (uint8_t)(now & 0xFF);
-      status.busBytes[status.busBytesSize++] = (uint8_t)(now >> 8);
-      status.busBytes[status.busBytesSize++] = (uint8_t)(now >> 16);
-      status.busBytes[status.busBytesSize++] = (uint8_t)(now >> 24);
-      status.busBytes[status.busBytesSize++] = (uint8_t)(frameId & 0xFF);
-      status.busBytes[status.busBytesSize++] = (uint8_t)(frameId >> 8);
-      status.busBytes[status.busBytesSize++] = (uint8_t)(frameId >> 16);
-      status.busBytes[status.busBytesSize++] = (uint8_t)(frameId >> 24);
-      status.busBytes[status.busBytesSize++] = mlength + (uint8_t)(((int)2) << 4); // 2 ibus address
-      status.busBytes[status.busBytesSize++] = m.destination();
+      b2w->addBuffer(now & 0xFF);
+      b2w->addBuffer(now >> 8);
+      b2w->addBuffer(now >> 16);
+      b2w->addBuffer(now >> 24);
+      b2w->addBuffer(frameId & 0xFF);
+      b2w->addBuffer(frameId >> 8);
+      b2w->addBuffer(frameId >> 16);
+      b2w->addBuffer(frameId >> 24);
+      b2w->addBuffer(mlength + (uint8_t)(((int)2) << 4)); // 2 ibus address
+      b2w->addBuffer(m.destination());
       for (int c = 0; c < mlength; c++)
-      {
-        status.busBytes[status.busBytesSize++] = (uint8_t)m.b(c);
-      }
-      status.busBytes[status.busBytesSize++] = (uint8_t)0;
+        b2w->addBuffer(m.b(c));
+      b2w->addBuffer(0);
+      b2w->send();
+
       // sprintf((char *)&status.busBytes[status.busBytesSize], "\r\n");
       // status.busBytesSize += 2;
 
@@ -255,28 +233,10 @@ void IBus::handle()
 
   if (status.ibusSend[1] != 0x00)
   {
-    // Serial.print("Sending ");
-    // for (uint8_t p = 0; p <= status.ibusSend[1]; p++)
-    // {
-    //   Serial.print(" ");
-    //   Serial.print(status.ibusSend[p], 16);
-    // }
-    // Serial.println("...");
-    // if (!ibusTrx.transmitWaiting())
-    // {
-    //   if(status.ibusSend[0]==0x3f && status.ibusSend[1]==0x0f && status.ibusSend[2]==0xd0)
-    //   { // diagnostic activate message
-    //     byte diagMSg[5]={
-    //         0x3f,
-    //         0x03,
-    //         0xd0,
-    //         0x0b,
-    //         0x78
-    //     };
-    //     ibusTrx.write(diagMSg);
-    //   }
-      ibusTrx.write(status.ibusSend);
-      status.ibusSend[1] = 0x00;
-    //}
+    Serial.printf("Ibus sending %s...\n", status.ibusSend);
+    b2w->addBuffer("sending...", 10);
+    b2w->send();
+    ibusTrx.write(status.ibusSend);
+    status.ibusSend[1] = 0x00;
   }
 }

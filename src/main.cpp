@@ -164,7 +164,7 @@ void setup()
   pinMode(pinsSettings.led, OUTPUT);
   wota.setupWiFi();
   wota.setupOTA();
-  ibus.setup();
+  ibus.setup(&bytesWiFi);
   mqtt.setup();
   sensors.setup(mqtt);
   bytesWiFi.setup();

@@ -6,7 +6,7 @@ class MqttMessageHandler
 
 public:
     MqttMessageHandler();
-    void static HandleMessage(const char *topic, const char *message);
+    void static HandleMessage(const char *topic, const char *message, int length);
 };
 
 #endif /* MQTTMESSAGEHANDLER_H_ */
