@@ -3,10 +3,10 @@
 
 #include <Arduino.h>
 
-//TODO use config typesd and base classes from shared folder
+#include "appconfig.h"
+#include "status.h"
 #include "shared/configtypes/configtypes.h"
 #include "shared/base/Sensor.h"
-#include "appconfig.h"
 #include "shared/MqttPubSub.h"
 
 class Sensors

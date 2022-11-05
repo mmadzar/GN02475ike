@@ -20,7 +20,7 @@ struct PinsSettings
   SensorConfig sensors[SensorCount] = {
       {devicet::adc_voltage, "adc_voltage", 35, sensort::voltage},
       {devicet::reverse_light, "reverse_light", 36, sensort::adc},
-      {devicet::adc_ntc, "adc_temp", 34, sensort::temperature} // brake vacuum sensor
+      {devicet::adc_ntc, "adc_temp", 34, sensort::temperature}
   };
 
   const gpio_num_t digipot_sck = (gpio_num_t)21;

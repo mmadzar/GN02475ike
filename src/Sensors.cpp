@@ -1,5 +1,4 @@
 #include "Sensors.h"
-#include "status.h"
 
 PinsSettings pinsSettingsSensors;
 MqttPubSub *mqttClientSensors;
@@ -19,28 +18,12 @@ void Sensors::setup(class MqttPubSub &mqtt_client)
     devices[i] = new Sensor(*configs[i]);
     devices[i]->onChange([](const char *name, devicet devicetype, int value)
                          { 
-                           status.sensors[pinsSettingsSensors.getSensorIndex(devicetype)]=value;
-                           switch (devicetype)
-                           {
-                            //case devicet::adc_vacuum:
-                              // status.sensors[pinsSettingsSensors.getSensorIndex(devicetype)]=value;
-                              //   if (value < brakesSettings.vacuum_max) // turn pump off
-                              //   {
-                              //     status.switches[pinsSettingsSensors.getSwitchIndex(devicet::msft_vacuum)]=LOW;
-                              //   }
-                              //   else if (value > brakesSettings.vacuum_min) // turn pump on
-                              //   {
-                              //     status.switches[pinsSettingsSensors.getSwitchIndex(devicet::msft_vacuum)]=HIGH;
-                              //   }
-                            //  break;
-                            default:
-                              int si=pinsSettingsSensors.getSensorIndex(devicetype);
-                              if(pinsSettingsSensors.sensors[si].sensortype==sensort::adc)
-                                  status.sensors[si]=value;
-                                else 
-                                  status.sensors[si]=value;
-                              break;
-                           }
+                          status.sensors[pinsSettingsSensors.getSensorIndex(devicetype)]=value;
+                          int si=pinsSettingsSensors.getSensorIndex(devicetype);
+                          if(pinsSettingsSensors.sensors[si].sensortype==sensort::adc)
+                              status.sensors[si]=value;
+                            else 
+                              status.sensors[si]=value;
                           mqttClientSensors->sendMessage(String(value), String(wifiSettings.hostname) + "/out/sensors/" + name); });
     devices[i]->setup();
   }
