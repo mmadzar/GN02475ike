@@ -1,6 +1,6 @@
 #include "MqttPubSub.h"
 
- MqttMessageHandler mqttMessageHandler;
+MqttMessageHandler mqttMessageHandler;
 
 MqttPubSub::MqttPubSub()
 {
@@ -36,12 +36,11 @@ void MqttPubSub::callback(char *topic, byte *message, unsigned int length)
     else if (cmd == "reconnect" && String(msg).toInt() == 1)
       WiFi.disconnect(false, false);
     else
-      mqttMessageHandler.HandleMessage(cmd.c_str(), msg);
+      mqttMessageHandler.HandleMessage(cmd.c_str(), msg, length + 1);
 
     status.receivedCount++;
   }
 }
-
 
 bool MqttPubSub::reconnect()
 {

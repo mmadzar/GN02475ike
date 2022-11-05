@@ -5,8 +5,8 @@
 
 #include "WiFiOTA.h"
 
-char *buff = new char[50];
-char *buff2 = new char[50];
+char *buff = new char[20];
+char *buff2 = new char[20];
 IPAddress ipA;
 IPAddress ipAG;
 bool connecting = false;
