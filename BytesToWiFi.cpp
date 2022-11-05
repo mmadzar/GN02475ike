@@ -18,7 +18,7 @@ void Bytes2WiFi::setup()
 
 void Bytes2WiFi::addBuffer(byte b)
 {
-    if (position > BUFFER_SIZE - 2)
+    if (position > BUFFER_SIZE - 1)
     {
         position = 0;
     }
@@ -136,9 +136,7 @@ void Bytes2WiFi::handle()
     {
         read();
         if (position > 0)
-        {
             send();
-        }
 
         if ((status.currentMillis - lastBroadcast) > 1000) // every second send out a broadcast ping
         {

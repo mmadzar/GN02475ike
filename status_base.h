@@ -13,7 +13,6 @@ public:
 
     char upsince[29];
     char connectedsince[29];
-    char currenttime[29];
     long connectCount = 0;
     long loops = 0;
     long missedSend = 0;

@@ -18,7 +18,7 @@ WiFiOTA::WiFiOTA()
 
 void WiFiOTA::setupWiFi()
 {
-  //esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B); // to get best signal?
+  //esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B); // to get best signal
   SETTINGS.loadSettings();
   esp_wifi_set_storage(WIFI_STORAGE_RAM);
   Serial.println("WiFi setup... ");
