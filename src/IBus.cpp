@@ -153,7 +153,7 @@ void IBus::handle()
           monitored[i]->replaced = false;
           monitored[i]->timestamp = status.currentMillis;
           // detected message
-          b2w->addBuffer('X');
+          // b2w->addBuffer('X');
           status.receivedCount++;
         }
       }
@@ -161,6 +161,8 @@ void IBus::handle()
       // format for sending to parse by SavvyCan
       uint32_t frameId = m.source();
       frameId |= 1 << 31;
+      if (msize > 15)
+        msize = 15;
       uint8_t mlength = msize + 1;
 
       b2w->addBuffer(0xf1);
@@ -174,11 +176,11 @@ void IBus::handle()
       b2w->addBuffer(frameId >> 8);
       b2w->addBuffer(frameId >> 16);
       b2w->addBuffer(frameId >> 24);
-      b2w->addBuffer(mlength + (uint8_t)(((int)2) << 4)); // 2 ibus address
+      b2w->addBuffer((mlength - 1) + (uint8_t)(((int)2) << 4)); // 2 ibus address
       b2w->addBuffer(m.destination());
-      for (int c = 0; c < mlength; c++)
+      for (int c = 0; c < (m.length() - 1) - 1; c++) // we don't need checksum and want complete message in serial
         b2w->addBuffer(m.b(c));
-      b2w->addBuffer(0);
+      b2w->addBuffer(0x0a); // in place of checksum - new line in serial monitor
 
       // sprintf((char *)&status.busBytes[status.busBytesSize], "\r\n");
       // status.busBytesSize += 2;
