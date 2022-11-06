@@ -9,11 +9,7 @@ MqttMessageHandler::MqttMessageHandler()
 
 void MqttMessageHandler::HandleMessage(const char *command, const char *message, int length)
 {
-  if (strcmp(command, "coolant_temp") == 0)
-  {
-    status.coolant_temp = String(message).toInt();
-  }
-  else if (strcmp(command, "litres1") == 0)
+  if (strcmp(command, "litres1") == 0)
   {
     status.litres1 = String(message).toDouble();
   }
