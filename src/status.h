@@ -13,7 +13,6 @@ public:
   uint8_t ibusSend[0xFF] = {0x00};
   long counts = 0;
 
-  int coolant_temp = 90;
   int digipot1 = 0;
   int digipot2 = 0;
   double litres1 = 0;
@@ -40,7 +39,6 @@ public:
 
     // TODO add display panel matrix data
     JsonObject jdisplay = root.createNestedObject("display");
-    jdisplay["coolant_temp"] = coolant_temp;
     jdisplay["litres1"] = litres1;
     jdisplay["litres2"] = litres2;
     jdisplay["digipot1"] = digipot1;
