@@ -16,17 +16,16 @@ WiFiSettings wifiSettings;
 WiFiOTA wota;
 IBus ibus;
 MqttPubSub mqtt;
-Bytes2WiFi bytesWiFi;
+Bytes2WiFi portSavvy;
+Bytes2WiFi portBytes;
+Bytes2WiFi portDebug;
 DigiPot dpot;
 Sensors sensors;
-
-long lastBytesSent = 0; // millis when last packet is sent
 
 long loops = 0;
 long lastLoopReport = 0;
 
 bool firstRun = true;
-int lastTempRead = 0; // ms when last temperature was read
 
 int calibrationCounter = 0;
 int lastCalibrateCommand = 0; // miliseconds when last calibrate command was sent
@@ -164,10 +163,12 @@ void setup()
   pinMode(pinsSettings.led, OUTPUT);
   wota.setupWiFi();
   wota.setupOTA();
-  ibus.setup(bytesWiFi);
+  ibus.setup(portSavvy, portBytes, portDebug);
   mqtt.setup();
   sensors.setup(mqtt);
-  bytesWiFi.setup();
+  portSavvy.setup(23);
+  portBytes.setup(24);
+  portDebug.setup(25);
   dpot.setup();
 }
 
@@ -176,14 +177,16 @@ void loop()
   status.currentMillis = millis();
   wota.handleWiFi();
   wota.handleOTA();
-  ibus.handle();
   if (!firstRun && loops % 10 == 0)
   {
     mqtt.handle();
     dpot.handle();
   }
+  ibus.handle();
   sensors.handle();
-  bytesWiFi.handle();
+  portSavvy.handle();
+  portBytes.handle();
+  portDebug.handle();
 
   if (!firstRun)
     mqtt.publishStatus(true);
@@ -195,8 +198,10 @@ void loop()
   {
     lastLoopReport = status.currentMillis;
     status.loops = loops;
-    Serial.printf("Loops in a seccond %u\n", loops);
+    Serial.printf("Loops in a second %u\n", loops);
     loops = 0;
+
+    //report on IKE display
   }
   loops++;
 }

@@ -21,21 +21,21 @@ public:
   double ohm_per_liter2 = 10;
   int ikeFuelLevel = -1; // used for pot calibration, received from can bus
 
-  char *midVerb1 = "midVerb1";
-  char *midVerb2 = "midVerb2";
+  char *midVerb1 = "midVerb1 ";
+  char *midVerb2 = "midVerb2 ";
   char *midReichw = "midReichw";
   char *ikeVerb1 = "ikeVerb1 ";
   char *ikeVerb2 = "ikeVerb2 ";
   char *ikeReichw = "ikeReichw";
 
+  char ikeDisplay[21]; //extra char for strings
+
   int sensors[SensorCount];
 
   JsonObject GenerateJson()
   {
-
     JsonObject root = this->PrepareRoot();
-    // root["vacuum_min"] = brakesSettings.vacuum_min;
-    // root["vacuum_max"] = brakesSettings.vacuum_max;
+    root["counts"] = counts;
 
     // TODO add display panel matrix data
     JsonObject jdisplay = root.createNestedObject("display");
@@ -46,6 +46,7 @@ public:
     jdisplay["ohmPerLiter1"] = ohm_per_liter1;
     jdisplay["ohmPerLiter2"] = ohm_per_liter2;
 
+    jdisplay["ikeDisplay"] = ikeDisplay;
     JsonObject jsensors = root.createNestedObject("sensors");
     for (size_t i = 0; i < SensorCount; i++)
     {

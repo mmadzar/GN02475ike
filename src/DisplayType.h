@@ -3,8 +3,9 @@
 
 enum DisplayType
 {
-    IKE,
-    MIDOBC
+    IKE,    // Check control OK message
+    IKEOBC, // on board computer related messages on IKE
+    MIDOBC  // on board computer related messages on MID
 };
 
 #endif

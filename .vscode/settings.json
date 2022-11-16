@@ -9,6 +9,13 @@
         "*.liquid": "csharp",
         "istream": "cpp",
         "ostream": "cpp",
-        "new": "cpp"
+        "new": "cpp",
+        "functional": "cpp",
+        "*.tcc": "cpp",
+        "system_error": "cpp",
+        "string": "cpp",
+        "string_view": "cpp",
+        "iomanip": "cpp",
+        "sstream": "cpp"
     }
 }
