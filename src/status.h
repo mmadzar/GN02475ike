@@ -12,6 +12,7 @@ public:
   String ibusMessage;
   uint8_t ibusSend[0xFF] = {0x00};
   long counts = 0;
+  bool reverseLights = false;
 
   int digipot1 = 0;
   int digipot2 = 0;
@@ -28,7 +29,7 @@ public:
   char *ikeVerb2 = "ikeVerb2 ";
   char *ikeReichw = "ikeReichw";
 
-  char ikeDisplay[21]; //extra char for strings
+  char ikeDisplay[21]; // extra char for strings
 
   int sensors[SensorCount];
 
@@ -45,6 +46,8 @@ public:
     jdisplay["digipot2"] = digipot2;
     jdisplay["ohmPerLiter1"] = ohm_per_liter1;
     jdisplay["ohmPerLiter2"] = ohm_per_liter2;
+
+    jdisplay["reverseLights"] = reverseLights;
 
     jdisplay["ikeDisplay"] = ikeDisplay;
     JsonObject jsensors = root.createNestedObject("sensors");

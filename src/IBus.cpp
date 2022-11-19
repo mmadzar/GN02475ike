@@ -54,6 +54,11 @@ uint8_t TrunkWindowUnlock[7] = {
     0x3E,
     0x01};
 
+uint8_t ReverseLightsOn[17] = {
+    0x3f, 0x0f, 0xd0, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x80, 0x00, 0x17, 0x34, 0x00, 0x00};
+uint8_t ReverseLightsOff[17] = {
+    0x3f, 0x0f, 0xd0, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x17, 0x34, 0x00, 0x00};
+
 MonitorMessage ikeVERB1(5);
 MonitorMessage ikeVERB2(5);
 MonitorMessage ikeREICHW(5);
@@ -150,26 +155,26 @@ void IBus::handle()
 
     uint8_t msize = m.length() - 1; // length byte includes destination
 
-    if (msize > 5) // TODO include message length from message settings
-    {
-      // tempBusMsg[0] = m.source();
-      // tempBusMsg[1] = m.length();
-      // tempBusMsg[2] = m.destination();
-      // // TODO include message length from message settings
-      // tempBusMsg[3] = m.b(0);
-      // tempBusMsg[4] = m.b(1);
-      // for (size_t i = 0; i < monitorMessagesCount; i++)
-      // {
-      //   if (monitored[i]->equals(tempBusMsg))
-      //   {
-      //     monitored[i]->received = true;
-      //     monitored[i]->replaced = false;
-      //     monitored[i]->timestamp = status.currentMillis;
-      //     // detected message
-      //     status.receivedCount++;
-      //   }
-      // }
-    }
+    // if (msize > 5) // TODO include message length from message settings
+    // {
+    //   tempBusMsg[0] = m.source();
+    //   tempBusMsg[1] = m.length();
+    //   tempBusMsg[2] = m.destination();
+    //   // TODO include message length from message settings
+    //   tempBusMsg[3] = m.b(0);
+    //   tempBusMsg[4] = m.b(1);
+    //   for (size_t i = 0; i < monitorMessagesCount; i++)
+    //   {
+    //     if (monitored[i]->equals(tempBusMsg))
+    //     {
+    //       monitored[i]->received = true;
+    //       monitored[i]->replaced = false;
+    //       monitored[i]->timestamp = status.currentMillis;
+    //       // detected message
+    //       status.receivedCount++;
+    //     }
+    //   // }
+    // }
 
     uint32_t now = micros();
     b2wbinary->addBuffer(m.source());
@@ -202,7 +207,6 @@ void IBus::handle()
     for (int c = 0; c < (m.length() - 1) - 1; c++) // we don't need checksum and want complete message in serial
       b2w->addBuffer(m.b(c));
     b2w->addBuffer(0x0a); // in place of checksum - new line in serial monitor
-    // b2w->send();
 
     // sprintf((char *)&status.busBytes[status.busBytesSize], "\r\n");
     // status.busBytesSize += 2;
@@ -338,7 +342,7 @@ void IBus::handle()
   {
     lastIkeDisplayUpdate = status.currentMillis;
     bool displayChanged = false;
-    for (size_t i = 0; i < 20; i++)
+    for (size_t i = 0; i < 21; i++)
     {
       if (IKEdisplay[i + 6] != (uint8_t)status.ikeDisplay[i])
       {
@@ -358,5 +362,26 @@ void IBus::handle()
   {
     ibusTrx.write(status.ibusSend);
     status.ibusSend[1] = 0x00;
+  }
+
+  // check for reverse gear select and turn on reverse lights on/off
+  if (status.reverseLights != lastReverseLights)
+  {
+    lastReverseLights = status.reverseLights;
+    if (lastReverseLights)
+    {
+      ibusTrx.write(ReverseLightsOn);
+      reverseLightsLastSent = status.currentMillis;
+    }
+    else
+      ibusTrx.write(ReverseLightsOff);
+    status.receivedCount++;
+  }
+  else if (status.reverseLights && status.currentMillis - reverseLightsLastSent > 10000)
+  {
+    // sending ON command eveery 10 seconds as DIA command has effect around 15s
+    ibusTrx.write(ReverseLightsOn);
+    reverseLightsLastSent = status.currentMillis;
+    status.counts++;
   }
 }

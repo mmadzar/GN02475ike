@@ -13,6 +13,8 @@ private:
   Bytes2WiFi *b2wbinary;
   Bytes2WiFi *b2wdebug;
   long lastIkeDisplayUpdate = 0;
+  bool lastReverseLights = false;
+  long reverseLightsLastSent = 0;
 
 public:
   IBus();

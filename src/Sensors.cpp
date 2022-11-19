@@ -24,6 +24,13 @@ void Sensors::setup(class MqttPubSub &mqtt_client)
                               status.sensors[si]=value;
                             else 
                               status.sensors[si]=value;
+
+                          if(devicetype==devicet::reverse_light){
+                            if(value>2500)
+                              status.reverseLights=true;
+                            else if(value<1000)
+                              status.reverseLights=false;
+                              }
                           mqttClientSensors->sendMessage(String(value), String(wifiSettings.hostname) + "/out/sensors/" + name); });
     devices[i]->setup();
   }

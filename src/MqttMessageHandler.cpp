@@ -109,6 +109,7 @@ void MqttMessageHandler::HandleMessage(const char *command, const char *message,
   else if (strcmp(command, "ibus") == 0)
   {
     char messagec[length + 1];
+    //status.receivedCount++;
     for (size_t cnt = 0; cnt < length + 1; cnt++)
     {
       // convert byte to its ascii representation
@@ -124,7 +125,6 @@ void MqttMessageHandler::HandleMessage(const char *command, const char *message,
       tc[1] = char(message[(i * 3) + 1]);
       status.ibusSend[i] = strtol(tc, 0, 16);
     }
-    Serial.printf(" >>> %S\r\n", (char *)status.ibusSend);
   }
 }
 
@@ -160,23 +160,26 @@ void MqttMessageHandler::callback(char *topic, byte *message, unsigned int lengt
       dpInverter.setValue(buffMMH);
     }
   }
-  else if (t.equals(String(commonName) + "acc/status"))
+  else if (t.startsWith(String(commonName) + "acc"))
   {
-    deserializeJson(mhdoc, message);
-    const int servop = mhdoc["switches"]["msft_servo"];
-    const int vaccp = mhdoc["switches"]["msft_vacuum"];
-    const int coolp = mhdoc["switches"]["msft_coolant_pwm"];
-    const int invpwr = mhdoc["switches"]["msft1"];
-    dpServoPump.setValue((String("S") + servop).c_str());
-    dpVaccPump.setValue((String("V") + vaccp).c_str());
-    dpCoolantPump.setValue(coolp > 0 ? "1" : "0");
-    dpInverterPWR.setValue(String(invpwr).c_str());
     dpAccOnline.setValue("1");
-    if (invpwr == 0) // inverter PWR off
-      dpInverter.setValue(pwrOff);
-    else if (String(dpInverter.value).equals(pwrOff)) // inverter PWR on but not messag from inverter yet
-      dpInverter.setValue(waitingInverterMessage);
-    dpInverter.lastUpdated = status.currentMillis;
+    if (t.equals(String(commonName) + "acc/status"))
+    {
+      deserializeJson(mhdoc, message);
+      const int servop = mhdoc["switches"]["msft_servo"];
+      const int vaccp = mhdoc["switches"]["msft_vacuum"];
+      const int coolp = mhdoc["switches"]["msft_coolant_pwm"];
+      const int invpwr = mhdoc["switches"]["msft1"];
+      dpServoPump.setValue((String("S") + servop).c_str());
+      dpVaccPump.setValue((String("V") + vaccp).c_str());
+      dpCoolantPump.setValue(coolp > 0 ? "1" : "0");
+      dpInverterPWR.setValue(String(invpwr).c_str());
+      if (invpwr == 0) // inverter PWR off
+        dpInverter.setValue(pwrOff);
+      else if (String(dpInverter.value).equals(pwrOff)) // inverter PWR ON but no message from inverter yet
+        dpInverter.setValue(waitingInverterMessage);
+      dpInverter.lastUpdated = status.currentMillis;
+    }
   }
   else if (t.startsWith(String(commonName) + "ivts12"))
   {
@@ -186,12 +189,13 @@ void MqttMessageHandler::callback(char *topic, byte *message, unsigned int lengt
 
 void MqttMessageHandler::updateDisplay()
 {
-  sprintf(status.ikeDisplay, "%S %S%S%S%S %S %S %S ",
+  sprintf(status.ikeDisplay, "%S %S%S%S%S %S %S %S%C",
           dpInverter.value,
           dpBms1.value, dpBms2.value, dpBms3.value, dpBms4.value,
           dpIvtsOnline.value,
           dpServoPump.value,
-          dpVaccPump.value);
+          dpVaccPump.value,
+          (status.reverseLights ? 'r' : +'.'));
 }
 
 void MqttMessageHandler::handle()
