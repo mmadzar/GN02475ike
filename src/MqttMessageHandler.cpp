@@ -109,7 +109,7 @@ void MqttMessageHandler::HandleMessage(const char *command, const char *message,
   else if (strcmp(command, "ibus") == 0)
   {
     char messagec[length + 1];
-    //status.receivedCount++;
+    // status.receivedCount++;
     for (size_t cnt = 0; cnt < length + 1; cnt++)
     {
       // convert byte to its ascii representation
@@ -178,8 +178,9 @@ void MqttMessageHandler::callback(char *topic, byte *message, unsigned int lengt
         dpInverter.setValue(pwrOff);
       else if (String(dpInverter.value).equals(pwrOff)) // inverter PWR ON but no message from inverter yet
         dpInverter.setValue(waitingInverterMessage);
-      dpInverter.lastUpdated = status.currentMillis;
     }
+    //don't timeout inverter message if ACC live
+    dpInverter.lastUpdated = status.currentMillis;
   }
   else if (t.startsWith(String(commonName) + "ivts12"))
   {

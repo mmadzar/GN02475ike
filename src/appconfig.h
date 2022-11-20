@@ -24,7 +24,7 @@ struct PinsSettings
   };
 
   const gpio_num_t digipot_sck = (gpio_num_t)21;
-  const gpio_num_t digipot_sdi = (gpio_num_t)-1; // not used
+  const gpio_num_t digipot_sdi = (gpio_num_t)23; // not used
   const gpio_num_t digipot_sdo = (gpio_num_t)22; //
 
   const gpio_num_t digipot_cs1 = (gpio_num_t)32;
