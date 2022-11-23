@@ -36,6 +36,8 @@ int potInCalibration = -1;
 int currentPos = -1;
 int targetLitres = 0;
 int referentPotLitres = 0; // value that is set by referent pot. need to take away for targeting value. displayed from IKE when referent pot set to referent point.
+// inverter PWR
+bool lastInverterPWR = false;
 
 void calibratePot()
 {
@@ -182,6 +184,14 @@ void loop()
     mqtt.handle();
     dpot.handle();
   }
+
+  // handle inverter pwr
+  if (status.inverterPWR != lastInverterPWR)
+  {
+    lastInverterPWR = status.inverterPWR;
+    mqtt.sendMesssageToTopic("GN02475acc/in/msft1", (lastInverterPWR == true ? String(1) : String(0)));
+  }
+
   ibus.handle();
   sensors.handle();
   portSavvy.handle();
@@ -201,7 +211,7 @@ void loop()
     Serial.printf("Loops in a second %u\n", loops);
     loops = 0;
 
-    //report on IKE display
+    // report on IKE display
   }
   loops++;
 }

@@ -13,6 +13,7 @@ public:
   uint8_t ibusSend[0xFF] = {0x00};
   long counts = 0;
   bool reverseLights = false;
+  bool inverterPWR = false;
 
   int digipot1 = 0;
   int digipot2 = 0;
@@ -37,6 +38,7 @@ public:
   {
     JsonObject root = this->PrepareRoot();
     root["counts"] = counts;
+    root["inverterPWR"] = inverterPWR;
 
     // TODO add display panel matrix data
     JsonObject jdisplay = root.createNestedObject("display");

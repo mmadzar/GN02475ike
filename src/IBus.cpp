@@ -15,44 +15,15 @@ uint8_t toggleDomeLight[6] = {
 };
 
 uint8_t IKEdisplay[27] = {
-    0x30,
-    0x19,
-    0x80,
-    0x1A,
-    0x35,
-    0x00,
+    0x30, 0x19, 0x80, 0x1A, 0x35, 0x00,
     0x20, // first character in message
-    0x20,
-    0x20,
-    0x20,
-    0x20,
-    0x20,
-    0x20,
-    0x20,
-    0x20,
-    0x20,
-    0x20,
-    0x20,
-    0x20,
-    0x20,
-    0x20,
-    0x20,
-    0x20,
-    0x20,
-    0x20,
-    0x20,
+    0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
     0x00 // checksum placeholder
 };
 
 // 3F 06 00 0C 00 3E 01 [0A]
 uint8_t TrunkWindowUnlock[7] = {
-    M_DIA,
-    0x06,
-    M_GM5,
-    0x0C,
-    0x00,
-    0x3E,
-    0x01};
+    M_DIA, 0x06, M_GM5, 0x0C, 0x00, 0x3E, 0x01};
 
 uint8_t ReverseLightsOn[17] = {
     0x3f, 0x0f, 0xd0, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x80, 0x00, 0x17, 0x34, 0x00, 0x00};
@@ -154,6 +125,32 @@ void IBus::handle()
     IbusMessage m = ibusTrx.readMessage(); // grab incoming messages
 
     uint8_t msize = m.length() - 1; // length byte includes destination
+
+    // check ignition status and pwr ON/OFF
+    if (m.source() == M_IKE && m.destination() == M_ALL && m.length() == 4 && m.b(0) == 0x11)
+    {
+      if (m.b(1) == 0x00)
+      {
+        // key off KL-30 - don't get that on GN02475
+      }
+      else if (m.b(1) == 0x01)
+      {
+        // key pos1 KL-R
+        // power OFF inverter using acc.msft1
+        status.inverterPWR = false; // msg sent in mqtt msg handler
+      }
+      else if (m.b(1) == 0x03)
+      {
+        // key pos2 KL-15
+        // power ON inverter using acc.msft1
+        status.inverterPWR = true; // msg sent in mqtt msg handler
+      }
+      else if (m.b(1) == 0x07)
+      {
+        // key pos3 - start - KL-50
+        // handled using signal from ignition directly on inverter start line
+      }
+    }
 
     // if (msize > 5) // TODO include message length from message settings
     // {

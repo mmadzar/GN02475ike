@@ -179,7 +179,7 @@ void MqttMessageHandler::callback(char *topic, byte *message, unsigned int lengt
       else if (String(dpInverter.value).equals(pwrOff)) // inverter PWR ON but no message from inverter yet
         dpInverter.setValue(waitingInverterMessage);
     }
-    //don't timeout inverter message if ACC live
+    // don't timeout inverter message if ACC live
     dpInverter.lastUpdated = status.currentMillis;
   }
   else if (t.startsWith(String(commonName) + "ivts12"))

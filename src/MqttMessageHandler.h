@@ -29,7 +29,7 @@ typedef struct
 
     void handle()
     {
-        if (status.currentMillis - lastUpdated > 2000) // fade status after two second
+        if (status.currentMillis - lastUpdated > 2000) // fade display parts status after two second
         {
             char buff[size + 1] = "                ";
             for (size_t i = 0; i < size; i++)
