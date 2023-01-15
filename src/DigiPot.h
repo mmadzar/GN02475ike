@@ -13,7 +13,7 @@
 class DigiPot
 {
 private:
-  PinsSettings pinsSettings;
+  Settings settings;
   void digitalPotWrite(int address, byte value);
   int lastdigipot1 = -1;
   int lastdigipot2 = -1;

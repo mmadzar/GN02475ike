@@ -205,9 +205,6 @@ void IBus::handle()
       b2w->addBuffer(m.b(c));
     b2w->addBuffer(0x0a); // in place of checksum - new line in serial monitor
 
-    // sprintf((char *)&status.busBytes[status.busBytesSize], "\r\n");
-    // status.busBytesSize += 2;
-
     // // open trunk window
     // if (m.source() == M_GM5 && m.b(0) == 0x72 && m.b(1) == 0x22)
     // {
@@ -348,7 +345,7 @@ void IBus::handle()
       }
     }
 
-    // !!!!!!!!!!!!! increased tx buffer size in ibustrx to from 16 to 64 to accept longer messages
+    // !!!!!!!!!!!!! increased tx buffer size in ibustrx from 16 to 64 to accept longer messages
     if (displayChanged)
     {
       ibusTrx.write(IKEdisplay);

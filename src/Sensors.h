@@ -14,7 +14,7 @@ class Sensors
 private:
   Sensor *devices[SensorCount];
   SensorConfig *configs[SensorCount];
-  PinsSettings pinsSettings;
+  Settings settings;
   double read(Sensor *sensor);
   double calculateTemperature(SensorConfig *sc, int adc_value);
   double calculateVoltage(SensorConfig *sc, int adc_value);

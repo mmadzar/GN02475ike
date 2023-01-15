@@ -7,13 +7,13 @@
 class Status : public StatusBase
 {
 public:
-  byte busBytes[2048];
-  int busBytesSize = 0;
   String ibusMessage;
   uint8_t ibusSend[0xFF] = {0x00};
+  int switches[SwitchCount];
   long counts = 0;
   bool reverseLights = false;
   bool inverterPWR = false;
+  int collectors[CollectorCount];
 
   int digipot1 = 0;
   int digipot2 = 0;
@@ -30,7 +30,7 @@ public:
   char *ikeVerb2 = "ikeVerb2 ";
   char *ikeReichw = "ikeReichw";
 
-  char ikeDisplay[21]; // extra char for strings
+  char ikeDisplay[25]; // extra char for strings
 
   int sensors[SensorCount];
 
@@ -54,9 +54,11 @@ public:
     jdisplay["ikeDisplay"] = ikeDisplay;
     JsonObject jsensors = root.createNestedObject("sensors");
     for (size_t i = 0; i < SensorCount; i++)
-    {
-      jsensors[pinsSettings.sensors[i].name] = sensors[i];
-    }
+      jsensors[settings.sensors[i].name] = sensors[i];
+
+    JsonObject jcollectors = root.createNestedObject("collectors");
+    for (size_t i = 0; i < CollectorCount; i++)
+      jcollectors[settings.collectors[i].name] = collectors[i];
 
     return root;
   }

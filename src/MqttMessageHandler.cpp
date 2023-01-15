@@ -28,6 +28,11 @@ static const char *waitingInverterMessage = ".....";
 static StaticJsonDocument<1024> mhdoc;
 char buffMMH[20];
 
+Collector *collectors[CollectorCount];
+CollectorConfig *configs[CollectorCount];
+
+Settings settingsCollectors;
+
 DisplayPartInfo(dpInverter);
 DisplayPartInfo(dpCoolantPump);
 DisplayPartInfo(dpInverterPWR);
@@ -40,9 +45,21 @@ DisplayPartInfo(dpIvtsOnline);
 DisplayPartInfo(dpServoPump);
 DisplayPartInfo(dpVaccPump);
 bool initDone = false;
+int ivtsPower = 0;
+int ivtsVoltage = 0;
 
 void init()
 {
+  for (size_t i = 0; i < CollectorCount; i++)
+  {
+    CollectorConfig *sc = &settings.collectors[i];
+    configs[i] = new CollectorConfig(sc->name, sc->sendRate);
+    collectors[i] = new Collector(*configs[i]);
+    collectors[i]->onChange([](const char *name, int value, int min, int max, int samplesCollected, char *timestamp)
+                            { status.collectors[settingsCollectors.getCollectorIndex(name)] = value; });
+    collectors[i]->setup();
+  }
+
   // init default values
   int i = 0;
   dpInverter.init(5, ".....");
@@ -64,13 +81,27 @@ void init()
   parts[i++] = &dpBms4;
 
   dpAccOnline.init(1, ".");
-  dpIvtsOnline.init(2, "I.");
+  dpIvtsOnline.init(5, " I. ");
   dpServoPump.init(2, "S.");
   dpVaccPump.init(2, "V.");
   parts[i++] = &dpAccOnline;
   parts[i++] = &dpIvtsOnline;
   parts[i++] = &dpServoPump;
   parts[i++] = &dpVaccPump;
+
+
+  for (size_t i = 0; i < CollectorCount; i++)
+  {
+    CollectorConfig *sc = &settings.collectors[i];
+    configs[i] = new CollectorConfig(sc->name, sc->sendRate);
+    collectors[i] = new Collector(*configs[i]);
+    collectors[i]->onChange([](const char *name, int value, int min, int max, int samplesCollected, char *timestamp)
+                            { 
+                              status.collectors[settingsCollectors.getCollectorIndex(name)]=value;
+                              //mqttClientCan->sendMessage(String(value), String(wifiSettings.hostname) + "/out/collectors/" + name); 
+                            });
+    collectors[i]->setup();
+  }
 
   initDone = true;
 }
@@ -137,9 +168,42 @@ const char *getLastTwoChars(int value)
     return strdup(String(value).c_str());
 }
 
+void getTimestamp(char *buffer)
+{
+  if (strcmp(status.SSID, "") == 0 || !getLocalTime(&(status.timeinfo), 10))
+    sprintf(buffer, "INVALID TIME               ");
+  else
+  {
+    long microsec = 0;
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+
+    microsec = tv.tv_usec;
+    strftime(buffer, 29, "%Y:%m:%d %H:%M:%S", &(status.timeinfo));
+    sprintf(buffer, "%s.%06d", buffer, microsec);
+  }
+}
+
+bool isBmsValid()
+{
+  // TODO for testing NO BMSes check
+  return true;
+  // return dpBms1.value[0] == '0' && dpBms2.value[0] == '0' && dpBms3.value[0] == '0' && dpBms4.value[0] == '0';
+}
+
+void getValue(const char *key, byte *message, unsigned int length)
+{
+  char ts[29];
+  getTimestamp(ts);
+  char msg[length + 2];
+  for (size_t i = 0; i < length; i++)
+    msg[i] = (char)message[i];
+  msg[length] = 0x0a;
+  collectors[settingsCollectors.getCollectorIndex(key)]->handle(String(msg).toInt(), ts);
+}
+
 void MqttMessageHandler::callback(char *topic, byte *message, unsigned int length)
 {
-  // subscribed to all channels
   String t = String(topic);
   if (t.startsWith(String(commonName) + "inv"))
   {
@@ -184,13 +248,30 @@ void MqttMessageHandler::callback(char *topic, byte *message, unsigned int lengt
   }
   else if (t.startsWith(String(commonName) + "ivts12"))
   {
-    dpIvtsOnline.setValue("I1");
+    if (t.endsWith("collectors/power10"))
+      getValue(POWER_12, message, length);
+    else if (t.endsWith("collectors/voltage"))
+      getValue(VOLTAGE_12, message, length);
+
+    // TODO
+    // int pwr = status.collectors[settingsCollectors.getCollectorIndex(POWER_12)];
+    // if (pwr < 0)
+    dpIvtsOnline.setValue(" I1 ");
+  }
+  else if (t.startsWith(String(commonName) + "ivtsHV"))
+  {
+    if (t.endsWith("collectors/power10"))
+      getValue(POWER_HV, message, length);
+    else if (t.endsWith("collectors/voltage"))
+      getValue(VOLTAGE_HV, message, length);
+
+    // // TODO set HV value
   }
 }
 
 void MqttMessageHandler::updateDisplay()
 {
-  sprintf(status.ikeDisplay, "%S %S%S%S%S %S %S %S%C",
+  sprintf(status.ikeDisplay, "%S %S%S%S%S%S%S %S%C",
           dpInverter.value,
           dpBms1.value, dpBms2.value, dpBms3.value, dpBms4.value,
           dpIvtsOnline.value,

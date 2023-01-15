@@ -16,6 +16,19 @@
         "string": "cpp",
         "string_view": "cpp",
         "iomanip": "cpp",
-        "sstream": "cpp"
+        "sstream": "cpp",
+        "array": "cpp",
+        "unordered_map": "cpp",
+        "algorithm": "cpp",
+        "memory": "cpp",
+        "memory_resource": "cpp",
+        "optional": "cpp",
+        "random": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp",
+        "cmath": "cpp",
+        "fstream": "cpp",
+        "numeric": "cpp",
+        "utility": "cpp"
     }
 }

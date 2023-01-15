@@ -20,11 +20,11 @@ void DigiPot::setup()
     minDiffPos[i][4] = 0;
   }
   seedResistorValues();
-  pinMode(pinsSettings.digipot_cs1, OUTPUT);
-  pinMode(pinsSettings.digipot_cs2, OUTPUT);
-  digitalWrite(pinsSettings.digipot_cs1, HIGH); // de-select chip
-  digitalWrite(pinsSettings.digipot_cs2, HIGH); // de-select chip
-  SPI.begin(pinsSettings.digipot_sck, pinsSettings.digipot_sdi, pinsSettings.digipot_sdo);
+  pinMode(settings.digipot_cs1, OUTPUT);
+  pinMode(settings.digipot_cs2, OUTPUT);
+  digitalWrite(settings.digipot_cs1, HIGH); // de-select chip
+  digitalWrite(settings.digipot_cs2, HIGH); // de-select chip
+  SPI.begin(settings.digipot_sck, settings.digipot_sdi, settings.digipot_sdo);
 }
 
 void DigiPot::seedResistorValues()
@@ -116,7 +116,7 @@ void DigiPot::handle()
     // Serial.println(minDiffPos[0][4] / 10.00);
 
     // status.litres1 = minDiffPos[0][3];
-    writePot(pinsSettings.digipot_cs1, 0, lastdigipot1); // write 5k value
+    writePot(settings.digipot_cs1, 0, lastdigipot1); // write 5k value
   }
   else if (lastdigipot2 != status.digipot2)
   {
@@ -136,7 +136,7 @@ void DigiPot::handle()
     // Serial.println(minDiffPos[1][4] / 10.00);
 
     // status.litres2 = minDiffPos[1][4];
-    writePot(pinsSettings.digipot_cs1, 1, lastdigipot2); // write 5k value
+    writePot(settings.digipot_cs1, 1, lastdigipot2); // write 5k value
   }
   // Update digipots to reflect litres if changed
   else if (lastLitre1 != status.litres1)
@@ -168,8 +168,8 @@ void DigiPot::handle()
     // Serial.println(minDiffPos[0][4] / 10.00);
 
     // status.digipot1 = minDiffPos[0][2];
-    writePot(pinsSettings.digipot_cs1, 0, minDiffPos[0][0]);
-    writePot(pinsSettings.digipot_cs1, 1, minDiffPos[0][1]);
+    writePot(settings.digipot_cs1, 0, minDiffPos[0][0]);
+    writePot(settings.digipot_cs1, 1, minDiffPos[0][1]);
   }
   else if (lastLitre2 != status.litres2)
   {
@@ -201,8 +201,8 @@ void DigiPot::handle()
 
     // status.digipot2 = minDiffPos[1][2];
 
-    writePot(pinsSettings.digipot_cs2, 0, minDiffPos[1][0]);
-    writePot(pinsSettings.digipot_cs2, 1, minDiffPos[1][1]);
+    writePot(settings.digipot_cs2, 0, minDiffPos[1][0]);
+    writePot(settings.digipot_cs2, 1, minDiffPos[1][1]);
   }
 }
 

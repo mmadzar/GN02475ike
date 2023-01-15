@@ -2,6 +2,8 @@
 #define MQTTMESSAGEHANDLER_H_
 
 #include "Arduino.h"
+#include "shared/base/Collector.h"
+#include "shared/configtypes/configtypes.h"
 #include "status.h"
 
 typedef struct

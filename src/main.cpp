@@ -10,7 +10,7 @@
 #include "Sensors.h"
 
 Status status;
-PinsSettings pinsSettings;
+Settings settings;
 Intervals intervals;
 WiFiSettings wifiSettings;
 WiFiOTA wota;
@@ -162,7 +162,7 @@ void calibrate(int potNo /* 0 or 1 */)
 void setup()
 {
   Serial.begin(115200);
-  pinMode(pinsSettings.led, OUTPUT);
+  pinMode(settings.led, OUTPUT);
   wota.setupWiFi();
   wota.setupOTA();
   ibus.setup(portSavvy, portBytes, portDebug);
