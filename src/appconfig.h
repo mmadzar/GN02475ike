@@ -1,7 +1,7 @@
 #ifndef APPCONFIG_H_
 #define APPCONFIG_H_
 
-#define HOST_NAME "GN02475ikeTTT"
+#define HOST_NAME "GN02475ike"
 
 #include "../../secrets.h"
 #include <stdint.h>
