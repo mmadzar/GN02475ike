@@ -23,14 +23,22 @@ struct Settings
 #define SwitchCount 0
   SwitchConfig switches[SwitchCount] = {};
 
-#define ListenChannelsCount 1
-  const char *listenChannels[ListenChannelsCount] = {"#"};
+#define ListenChannelsCount 8
+  const char *listenChannels[ListenChannelsCount] = {
+    "GN02475inv/out/inverter", //should come in every 1/3 seccond
+    "GN02475acc/status",
+    "GN02475acc/out/sensors/adc_vacuum", //should come in every 1/2 second
+    "GN02475ivts12/out/collectors/power",
+    "GN02475ivts12/out/collectors/voltage",
+    "GN02475ivtsHV/out/collectors/power10",
+    "GN02475ivtsHV/out/collectors/voltage"
+    };
 
 #define SensorCount 3
 
   SensorConfig sensors[SensorCount] = {
       {devicet::adc_voltage, "adc_voltage", 35, sensort::voltage},
-      {devicet::reverse_light, "reverse_light", 36, sensort::adc},
+      {devicet::reverse_light, "reverse_light", 36, sensort::digital},
       {devicet::adc_ntc, "adc_temp", 34, sensort::temperature}};
 
   const gpio_num_t digipot_sck = (gpio_num_t)21;

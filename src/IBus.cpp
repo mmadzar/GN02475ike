@@ -368,7 +368,10 @@ void IBus::handle()
       reverseLightsLastSent = status.currentMillis;
     }
     else
+    {
       ibusTrx.write(ReverseLightsOff);
+      status.counts = 0;
+    }
     status.receivedCount++;
   }
   else if (status.reverseLights && status.currentMillis - reverseLightsLastSent > 10000)

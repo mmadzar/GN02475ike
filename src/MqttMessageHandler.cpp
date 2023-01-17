@@ -22,7 +22,6 @@ const char *invertererrors[19] = {
     "HIRES",
     "LORES",
     "TMPM "};
-static const char *commonName = "GN02475";
 static const char *pwrOff = "OFF  ";
 static const char *waitingInverterMessage = ".....";
 static StaticJsonDocument<1024> mhdoc;
@@ -248,7 +247,7 @@ void MqttMessageHandler::callback(char *topic, byte *message, unsigned int lengt
   }
   else if (t.startsWith(String(commonName) + "ivts12"))
   {
-    if (t.endsWith("collectors/power10"))
+    if (t.endsWith("collectors/power"))
       getValue(POWER_12, message, length);
     else if (t.endsWith("collectors/voltage"))
       getValue(VOLTAGE_12, message, length);
@@ -265,7 +264,7 @@ void MqttMessageHandler::callback(char *topic, byte *message, unsigned int lengt
     else if (t.endsWith("collectors/voltage"))
       getValue(VOLTAGE_HV, message, length);
 
-    // // TODO set HV value
+    // // TODO set HV display value
   }
 }
 
