@@ -23,7 +23,7 @@ struct Settings
 #define SwitchCount 0
   SwitchConfig switches[SwitchCount] = {};
 
-#define ListenChannelsCount 8
+#define ListenChannelsCount 7
   const char *listenChannels[ListenChannelsCount] = {
     "GN02475inv/out/inverter", //should come in every 1/3 seccond
     "GN02475acc/status",

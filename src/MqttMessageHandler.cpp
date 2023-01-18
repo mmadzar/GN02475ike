@@ -88,16 +88,15 @@ void init()
   parts[i++] = &dpServoPump;
   parts[i++] = &dpVaccPump;
 
-
   for (size_t i = 0; i < CollectorCount; i++)
   {
     CollectorConfig *sc = &settings.collectors[i];
     configs[i] = new CollectorConfig(sc->name, sc->sendRate);
     collectors[i] = new Collector(*configs[i]);
     collectors[i]->onChange([](const char *name, int value, int min, int max, int samplesCollected, char *timestamp)
-                            { 
-                              status.collectors[settingsCollectors.getCollectorIndex(name)]=value;
-                              //mqttClientCan->sendMessage(String(value), String(wifiSettings.hostname) + "/out/collectors/" + name); 
+                            {
+                              status.collectors[settingsCollectors.getCollectorIndex(name)] = value;
+                              // mqttClientCan->sendMessage(String(value), String(wifiSettings.hostname) + "/out/collectors/" + name);
                             });
     collectors[i]->setup();
   }
@@ -204,29 +203,26 @@ void getValue(const char *key, byte *message, unsigned int length)
 void MqttMessageHandler::callback(char *topic, byte *message, unsigned int length)
 {
   String t = String(topic);
-  if (t.startsWith(String(commonName) + "inv"))
+  if (t.endsWith("inv/out/inverter"))
   {
     dpInverter.lastUpdated = status.currentMillis;
     // parse inverter status message
-    if (t.equals(String(commonName) + "inv/out/inverter"))
-    {
-      // inverter PWR on and online or there would be no message from inverter
-      deserializeJson(mhdoc, message);
-      const int opmode = mhdoc["opmode"];
-      const int lasterr = mhdoc["lasterr"];
-      const double tmphs = mhdoc["tmphs"];
+    // inverter PWR on and online or there would be no message from inverter
+    deserializeJson(mhdoc, message);
+    const int opmode = mhdoc["opmode"];
+    const int lasterr = mhdoc["lasterr"];
+    const double tmphs = mhdoc["tmphs"];
 
-      if (opmode == 0) // inverter stopped no error or errors
-        sprintf(buffMMH, "%S", invertererrors[String(lasterr).toInt()]);
-      else // inverter running
-        sprintf(buffMMH, "%S %S%S", getLastTwoChars(tmphs), dpCoolantPump.value, (lasterr > 0 ? "e" : " "));
-      dpInverter.setValue(buffMMH);
-    }
+    if (opmode == 0) // inverter stopped no error or errors
+      sprintf(buffMMH, "%S", invertererrors[String(lasterr).toInt()]);
+    else // inverter running
+      sprintf(buffMMH, "%S %S%S", getLastTwoChars(tmphs), dpCoolantPump.value, (lasterr > 0 ? "e" : " "));
+    dpInverter.setValue(buffMMH);
   }
-  else if (t.startsWith(String(commonName) + "acc"))
+  else if (t.endsWith("acc/status") || t.endsWith("acc/out/sensors/adc_vacuum"))
   {
     dpAccOnline.setValue("1");
-    if (t.equals(String(commonName) + "acc/status"))
+    if (t.endsWith("acc/status"))
     {
       deserializeJson(mhdoc, message);
       const int servop = mhdoc["switches"]["msft_servo"];
@@ -245,27 +241,21 @@ void MqttMessageHandler::callback(char *topic, byte *message, unsigned int lengt
     // don't timeout inverter message if ACC live
     dpInverter.lastUpdated = status.currentMillis;
   }
-  else if (t.startsWith(String(commonName) + "ivts12"))
+  else if (t.endsWith("ivts12/out/collectors/power"))
   {
-    if (t.endsWith("collectors/power"))
-      getValue(POWER_12, message, length);
-    else if (t.endsWith("collectors/voltage"))
-      getValue(VOLTAGE_12, message, length);
-
+    getValue(POWER_12, message, length);
     // TODO
     // int pwr = status.collectors[settingsCollectors.getCollectorIndex(POWER_12)];
     // if (pwr < 0)
-    dpIvtsOnline.setValue(" I1 ");
+    // dpIvtsOnline.setValue(" I1 ");
   }
-  else if (t.startsWith(String(commonName) + "ivtsHV"))
-  {
-    if (t.endsWith("collectors/power10"))
-      getValue(POWER_HV, message, length);
-    else if (t.endsWith("collectors/voltage"))
-      getValue(VOLTAGE_HV, message, length);
-
-    // // TODO set HV display value
-  }
+  else if (t.endsWith("ivts12/out/collectors/voltage"))
+    getValue(VOLTAGE_12, message, length);
+  else if (t.endsWith("ivtsHV/out/collectors/power10"))
+    getValue(POWER_HV, message, length);
+  else if (t.endsWith("ivtsHV/out/collectors/voltage"))
+    getValue(VOLTAGE_HV, message, length);
+  // // TODO set HV display value
 }
 
 void MqttMessageHandler::updateDisplay()

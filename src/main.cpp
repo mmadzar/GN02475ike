@@ -180,9 +180,10 @@ void loop()
   wota.handleWiFi();
   wota.handleOTA();
   if (!firstRun && loops % 10 == 0)
-    dpot.handle();
-  else if (!firstRun)
+  {
     mqtt.handle();
+    dpot.handle();
+  }
 
   // handle inverter pwr
   if (status.inverterPWR != lastInverterPWR)
