@@ -177,7 +177,7 @@ void getTimestamp(char *buffer)
     gettimeofday(&tv, NULL);
 
     microsec = tv.tv_usec;
-    strftime(buffer, 29, "%Y:%m:%d %H:%M:%S", &(status.timeinfo));
+    strftime(buffer, 29, "%Y-%m-%d %H:%M:%S", &(status.timeinfo));
     sprintf(buffer, "%s.%06d", buffer, microsec);
   }
 }
@@ -244,29 +244,62 @@ void MqttMessageHandler::callback(char *topic, byte *message, unsigned int lengt
   else if (t.endsWith("ivts12/out/collectors/power"))
   {
     getValue(POWER_12, message, length);
-    // TODO
-    // int pwr = status.collectors[settingsCollectors.getCollectorIndex(POWER_12)];
-    // if (pwr < 0)
-    // dpIvtsOnline.setValue(" I1 ");
+    int sharedIVTSchanged = status.collectors[settingsCollectors.getCollectorIndex(POWER_12)];
+    if (abs(sharedIVTSchanged) > 10) // trigger above 10W
+    {
+      String s(sharedIVTSchanged < 0 ? "-" : "+");
+      s.concat(abs(sharedIVTSchanged) / 10); // show .1
+      if (abs(sharedIVTSchanged) < 100)
+        s.concat("  ");
+      else if (abs(sharedIVTSchanged) < 1000)
+        s.concat(" ");
+      dpIvtsOnline.setValue(s.c_str());
+    }
+    else
+      dpIvtsOnline.setValue("    ");
   }
   else if (t.endsWith("ivts12/out/collectors/voltage"))
     getValue(VOLTAGE_12, message, length);
   else if (t.endsWith("ivtsHV/out/collectors/power10"))
+  {
     getValue(POWER_HV, message, length);
+    int sharedIVTSchanged = status.collectors[settingsCollectors.getCollectorIndex(POWER_HV)];
+    if (abs(sharedIVTSchanged) > 1000) // trigger only above 1kW
+    {
+      String s(sharedIVTSchanged < 0 ? "-" : "+");
+      s.concat(abs(sharedIVTSchanged) / 1000); // show .001
+      if (abs(sharedIVTSchanged) < 10000)
+        s.concat("  ");
+      else if (abs(sharedIVTSchanged) < 100000)
+        s.concat(" ");
+      dpBms1.setValue(s.substring(0, 1).c_str());
+      dpBms2.setValue(s.substring(1, 2).c_str());
+      dpBms3.setValue(s.substring(2, 3).c_str());
+      dpBms4.setValue(s.substring(3, 4).c_str());
+    }
+    else
+    {
+      dpBms1.setValue(" ");
+      dpBms2.setValue(" ");
+      dpBms3.setValue(" ");
+      dpBms4.setValue(" ");
+    }
+  }
   else if (t.endsWith("ivtsHV/out/collectors/voltage"))
     getValue(VOLTAGE_HV, message, length);
-  // // TODO set HV display value
 }
 
 void MqttMessageHandler::updateDisplay()
 {
+  //                             +- HV -+
+  //                             b1b2b3b4lv
   sprintf(status.ikeDisplay, "%S %S%S%S%S%S%S %S%C",
           dpInverter.value,
           dpBms1.value, dpBms2.value, dpBms3.value, dpBms4.value,
           dpIvtsOnline.value,
           dpServoPump.value,
           dpVaccPump.value,
-          (status.reverseLights ? 'r' : +'.'));
+          (status.reverseLights ? 'r' : +' '));
 }
 
 void MqttMessageHandler::handle()
