@@ -39,126 +39,6 @@ int referentPotLitres = 0; // value that is set by referent pot. need to take aw
 // inverter PWR
 bool lastInverterPWR = false;
 
-void calibratePot()
-{
-  int fuelCheck = status.ikeFuelLevel;
-  if (fuelCheck >= 128)
-  {
-    fuelCheck = fuelCheck - 128;
-  }
-  if (lastValueFromIKE == fuelCheck && status.currentMillis - lastCalibrateCommand > 2000) // execute calibration command every second
-  {
-    // set oposite pot value to 10
-    if (potInCalibration != potToCalibrate)
-    {
-      if (currentPos == -1) // start testing
-      {
-        // reset positions before calibration
-        mqtt.sendMesssageToTopic("ESP32carbustest/in/litres1", "0");
-        mqtt.sendMesssageToTopic("ESP32carbustest/in/litres2", "0");
-
-        targetLitres = 10;
-        currentPos = 30;
-      }
-      if (fuelCheck != targetLitres)
-      {
-        Serial.print(currentPos);
-        Serial.print(" -> ");
-        Serial.print(status.ikeFuelLevel);
-        Serial.print(" -> ");
-        Serial.println(fuelCheck);
-        // expected to set on 10.00 litres - start from calculated 8.5 and test every
-        currentPos++;
-        if (potInCalibration == 0)
-          mqtt.sendMesssageToTopic("ESP32carbustest/in/litres1", String(dpot.resVal[currentPos][potInCalibration + 3] / 10.00, 1));
-        else
-          mqtt.sendMesssageToTopic("ESP32carbustest/in/litres2", String(dpot.resVal[currentPos][potInCalibration + 3] / 10.00, 1));
-        lastCalibrateCommand = status.currentMillis;
-      }
-      else // targeted value
-      {
-        Serial.println("Referent pot set up");
-        referentPotLitres = targetLitres;
-        // referent pot setup done... move to the calibration of requested pot
-        potInCalibration = potToCalibrate;
-        targetLitres = 0;
-        currentPos = -1;
-      }
-      if (currentPos > 358)
-        currentPos = -1;
-    }
-    // calibrate requested pot
-    else
-    {
-      if (currentPos == -1) // start testing
-      {
-        targetLitres = 0;
-        currentPos = 0;
-      }
-
-      if (fuelCheck - referentPotLitres != targetLitres)
-      {
-        Serial.print("Pos: ");
-        Serial.print(currentPos);
-        Serial.print(" IKE: ");
-        Serial.print(status.ikeFuelLevel);
-        Serial.print(" chk: ");
-        Serial.print(fuelCheck);
-        Serial.print(" target: ");
-        Serial.println(targetLitres);
-        if (potInCalibration == 0)
-          mqtt.sendMesssageToTopic("ESP32carbustest/in/litres1", String(dpot.resVal[currentPos][potInCalibration + 3] / 10.00, 1));
-        else
-          mqtt.sendMesssageToTopic("ESP32carbustest/in/litres2", String(dpot.resVal[currentPos][potInCalibration + 3] / 10.00, 1));
-        lastCalibrateCommand = status.currentMillis;
-        dpot.resVal[currentPos][potInCalibration + 5] = fuelCheck - referentPotLitres; // map current IKE value
-      }
-      else // targeted value
-      {
-        dpot.resVal[currentPos][potInCalibration + 5] = targetLitres;
-        Serial.println("target found.");
-        targetLitres++;
-      }
-      currentPos++;
-      if (currentPos > 358)
-      {
-        currentPos = -1;
-        calibrationInProgress = false;
-        for (size_t i = 0; i < 358; i++)
-        {
-          Serial.print(i);
-          Serial.print("\t");
-          Serial.print(dpot.resVal[i][0]);
-          Serial.print("\t");
-          Serial.print(dpot.resVal[i][1]);
-          Serial.print("\t");
-          Serial.print(dpot.resVal[i][2]);
-          Serial.print("\t");
-          Serial.print(dpot.resVal[i][3] / 10.00);
-          Serial.print("\t");
-          Serial.print(dpot.resVal[i][4] / 10.00);
-          Serial.print("\t");
-          Serial.print(dpot.resVal[i][5]);
-          Serial.print("\t");
-          Serial.println(dpot.resVal[i][6]);
-          if (potInCalibration == 0)
-            targetLitres = -100; // continue  with next pot
-        }
-      }
-    }
-  }
-  lastValueFromIKE = fuelCheck;
-}
-
-void calibrate(int potNo /* 0 or 1 */)
-{
-  potToCalibrate = potNo;
-  potInCalibration = abs(potNo - 1);
-  calibrationInProgress = true;
-  calibrationCounter = 0;
-  calibratePot();
-}
-
 void setup()
 {
   Serial.begin(115200);
@@ -189,7 +69,7 @@ void loop()
   if (status.inverterPWR != lastInverterPWR)
   {
     lastInverterPWR = status.inverterPWR;
-    mqtt.sendMesssageToTopic("GN02475acc/in/msft1", (lastInverterPWR == true ? String(1) : String(0)));
+    mqtt.sendMessageToTopic("GN02475acc/in/msft1", (lastInverterPWR == true ? String(1) : String(0)));
   }
 
   ibus.handle();

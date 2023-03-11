@@ -27,7 +27,7 @@ void Sensors::setup(class MqttPubSub &mqtt_client)
 
                           if(devicetype==devicet::reverse_light)
                               status.reverseLights=(bool)value;
-                          mqttClientSensors->sendMessage(String(value), String(wifiSettings.hostname) + "/out/sensors/" + name); });
+                          mqttClientSensors->sendMessageToTopic(String(value), String(wifiSettings.hostname) + "/out/sensors/" + name); });
     devices[i]->setup();
   }
 }

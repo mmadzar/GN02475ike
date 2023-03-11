@@ -25,19 +25,18 @@ struct Settings
 
 #define ListenChannelsCount 7
   const char *listenChannels[ListenChannelsCount] = {
-    "GN02475inv/out/inverter", //should come in every 1/3 seccond
-    "GN02475acc/status",
-    "GN02475acc/out/sensors/adc_vacuum", //should come in every 1/2 second
-    "GN02475ivts12/out/collectors/power",
-    "GN02475ivts12/out/collectors/voltage",
-    "GN02475ivtsHV/out/collectors/power10",
-    "GN02475ivtsHV/out/collectors/voltage"
-    };
+      "GN02475inv/out/inverter", // should come in every 1/5 seccond
+      "GN02475acc/status",
+      "GN02475acc/out/sensors/adc_vacuum", // should come in every 1/2 second
+      "GN02475ivts12/out/collectors/power",
+      "GN02475ivts12/out/collectors/voltage",
+      "GN02475ivtsHV/out/collectors/power",
+      "GN02475ivtsHV/out/collectors/voltage"
+      };
 
-#define SensorCount 3
-
+#define SensorCount 2
   SensorConfig sensors[SensorCount] = {
-      {devicet::adc_voltage, "adc_voltage", 35, sensort::voltage},
+      //{devicet::adc_voltage, "adc_voltage", 35, sensort::voltage}, //hw not working correctly
       {devicet::reverse_light, "reverse_light", 36, sensort::digital},
       {devicet::adc_ntc, "adc_temp", 34, sensort::temperature}};
 
@@ -51,9 +50,9 @@ struct Settings
 #define CollectorCount 4
   CollectorConfig collectors[CollectorCount] = {
       {VOLTAGE_12, 500},
-      {POWER_12, 100},
+      {POWER_12, 500},
       {VOLTAGE_HV, 500},
-      {POWER_HV, 100}};
+      {POWER_HV, 500}};
 
   int getCollectorIndex(const char *name)
   {

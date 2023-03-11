@@ -54,7 +54,7 @@ void init()
     CollectorConfig *sc = &settings.collectors[i];
     configs[i] = new CollectorConfig(sc->name, sc->sendRate);
     collectors[i] = new Collector(*configs[i]);
-    collectors[i]->onChange([](const char *name, int value, int min, int max, int samplesCollected, char *timestamp)
+    collectors[i]->onChange([](const char *name, int value, int min, int max, int samplesCollected, uint64_t timestamp)
                             { status.collectors[settingsCollectors.getCollectorIndex(name)] = value; });
     collectors[i]->setup();
   }
@@ -87,19 +87,6 @@ void init()
   parts[i++] = &dpIvtsOnline;
   parts[i++] = &dpServoPump;
   parts[i++] = &dpVaccPump;
-
-  for (size_t i = 0; i < CollectorCount; i++)
-  {
-    CollectorConfig *sc = &settings.collectors[i];
-    configs[i] = new CollectorConfig(sc->name, sc->sendRate);
-    collectors[i] = new Collector(*configs[i]);
-    collectors[i]->onChange([](const char *name, int value, int min, int max, int samplesCollected, char *timestamp)
-                            {
-                              status.collectors[settingsCollectors.getCollectorIndex(name)] = value;
-                              // mqttClientCan->sendMessage(String(value), String(wifiSettings.hostname) + "/out/collectors/" + name);
-                            });
-    collectors[i]->setup();
-  }
 
   initDone = true;
 }
@@ -166,22 +153,6 @@ const char *getLastTwoChars(int value)
     return strdup(String(value).c_str());
 }
 
-void getTimestamp(char *buffer)
-{
-  if (strcmp(status.SSID, "") == 0 || !getLocalTime(&(status.timeinfo), 10))
-    sprintf(buffer, "INVALID TIME               ");
-  else
-  {
-    long microsec = 0;
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-
-    microsec = tv.tv_usec;
-    strftime(buffer, 29, "%Y-%m-%d %H:%M:%S", &(status.timeinfo));
-    sprintf(buffer, "%s.%06d", buffer, microsec);
-  }
-}
-
 bool isBmsValid()
 {
   // TODO for testing NO BMSes check
@@ -189,15 +160,9 @@ bool isBmsValid()
   // return dpBms1.value[0] == '0' && dpBms2.value[0] == '0' && dpBms3.value[0] == '0' && dpBms4.value[0] == '0';
 }
 
-void getValue(const char *key, byte *message, unsigned int length)
+void getValue(const char *key, const char *message, unsigned int length)
 {
-  char ts[29];
-  getTimestamp(ts);
-  char msg[length + 2];
-  for (size_t i = 0; i < length; i++)
-    msg[i] = (char)message[i];
-  msg[length] = 0x0a;
-  collectors[settingsCollectors.getCollectorIndex(key)]->handle(String(msg).toInt(), ts);
+  collectors[settingsCollectors.getCollectorIndex(key)]->handle(String(message).toInt(), status.getTimestampMicro());
 }
 
 void MqttMessageHandler::callback(char *topic, byte *message, unsigned int length)
@@ -243,7 +208,8 @@ void MqttMessageHandler::callback(char *topic, byte *message, unsigned int lengt
   }
   else if (t.endsWith("ivts12/out/collectors/power"))
   {
-    getValue(POWER_12, message, length);
+    deserializeJson(mhdoc, message);
+    getValue(POWER_12, mhdoc["value"], length);
     int sharedIVTSchanged = status.collectors[settingsCollectors.getCollectorIndex(POWER_12)];
     if (abs(sharedIVTSchanged) > 10) // trigger above 10W
     {
@@ -259,10 +225,14 @@ void MqttMessageHandler::callback(char *topic, byte *message, unsigned int lengt
       dpIvtsOnline.setValue("    ");
   }
   else if (t.endsWith("ivts12/out/collectors/voltage"))
-    getValue(VOLTAGE_12, message, length);
+  {
+    deserializeJson(mhdoc, message);
+    getValue(VOLTAGE_12, mhdoc["value"], length);
+  }
   else if (t.endsWith("ivtsHV/out/collectors/power10"))
   {
-    getValue(POWER_HV, message, length);
+    deserializeJson(mhdoc, message);
+    getValue(POWER_HV, mhdoc["value"], length);
     int sharedIVTSchanged = status.collectors[settingsCollectors.getCollectorIndex(POWER_HV)];
     if (abs(sharedIVTSchanged) > 1000) // trigger only above 1kW
     {
@@ -286,7 +256,10 @@ void MqttMessageHandler::callback(char *topic, byte *message, unsigned int lengt
     }
   }
   else if (t.endsWith("ivtsHV/out/collectors/voltage"))
-    getValue(VOLTAGE_HV, message, length);
+  {
+    deserializeJson(mhdoc, message);
+    getValue(VOLTAGE_HV, mhdoc["value"], length);
+  }
 }
 
 void MqttMessageHandler::updateDisplay()
