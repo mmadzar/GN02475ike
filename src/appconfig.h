@@ -23,16 +23,17 @@ struct Settings
 #define SwitchCount 0
   SwitchConfig switches[SwitchCount] = {};
 
-#define ListenChannelsCount 7
+#define ListenChannelsCount 9
   const char *listenChannels[ListenChannelsCount] = {
-      "GN02475inv/out/inverter", // should come in every 1/5 seccond
+      "GN02475inv/out/collectors/opmode", // should come in every 1/3 seccond
+      "GN02475inv/out/collectors/lasterr",
+      "GN02475inv/out/collectors/tmphs",
       "GN02475acc/status",
       "GN02475acc/out/sensors/adc_vacuum", // should come in every 1/2 second
       "GN02475ivts12/out/collectors/power",
       "GN02475ivts12/out/collectors/voltage",
       "GN02475ivtsHV/out/collectors/power",
-      "GN02475ivtsHV/out/collectors/voltage"
-      };
+      "GN02475ivtsHV/out/collectors/voltage"};
 
 #define SensorCount 2
   SensorConfig sensors[SensorCount] = {

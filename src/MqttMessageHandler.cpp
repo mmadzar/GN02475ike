@@ -26,6 +26,9 @@ static const char *pwrOff = "OFF  ";
 static const char *waitingInverterMessage = ".....";
 static StaticJsonDocument<1024> mhdoc;
 char buffMMH[20];
+int opmode = 0;
+int lasterr = 0;
+double tmphs = 0;
 
 Collector *collectors[CollectorCount];
 CollectorConfig *configs[CollectorCount];
@@ -146,7 +149,7 @@ void MqttMessageHandler::HandleMessage(const char *command, const char *message,
 
 const char *getLastTwoChars(int value)
 {
-  String s(value);
+  String s((int)value);
   if (s.length() > 2)
     return strdup(s.substring(s.length() - 2, s.length()).c_str());
   else
@@ -168,20 +171,27 @@ void getValue(const char *key, const char *message, unsigned int length)
 void MqttMessageHandler::callback(char *topic, byte *message, unsigned int length)
 {
   String t = String(topic);
-  if (t.endsWith("inv/out/inverter"))
+  if (t.indexOf("inv/out/collectors") > 0)
   {
     dpInverter.lastUpdated = status.currentMillis;
     // parse inverter status message
     // inverter PWR on and online or there would be no message from inverter
     deserializeJson(mhdoc, message);
-    const int opmode = mhdoc["opmode"];
-    const int lasterr = mhdoc["lasterr"];
-    const double tmphs = mhdoc["tmphs"];
-
+    if (t.endsWith("opmode"))
+      opmode = mhdoc["value"];
+    else if (t.endsWith("lasterr"))
+      lasterr = mhdoc["value"];
+    else if (t.endsWith("tmphs"))
+      tmphs = mhdoc["max"];
     if (opmode == 0) // inverter stopped no error or errors
       sprintf(buffMMH, "%S", invertererrors[String(lasterr).toInt()]);
     else // inverter running
-      sprintf(buffMMH, "%S %S%S", getLastTwoChars(tmphs), dpCoolantPump.value, (lasterr > 0 ? "e" : " "));
+    {
+      sprintf(buffMMH, "%S %S%S", getLastTwoChars((int)(tmphs / 100.0)), dpCoolantPump.value, (lasterr > 0 ? "e" : " "));
+      Serial.println(t);
+      Serial.print("dfsdfsdf ");
+      Serial.println(tmphs);
+    }
     dpInverter.setValue(buffMMH);
   }
   else if (t.endsWith("acc/status") || t.endsWith("acc/out/sensors/adc_vacuum"))
@@ -229,7 +239,7 @@ void MqttMessageHandler::callback(char *topic, byte *message, unsigned int lengt
     deserializeJson(mhdoc, message);
     getValue(VOLTAGE_12, mhdoc["value"], length);
   }
-  else if (t.endsWith("ivtsHV/out/collectors/power10"))
+  else if (t.endsWith("ivtsHV/out/collectors/power"))
   {
     deserializeJson(mhdoc, message);
     getValue(POWER_HV, mhdoc["value"], length);
