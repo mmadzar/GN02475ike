@@ -4,61 +4,39 @@
 #include "appconfig.h"
 #include "shared/status_base.h"
 
-class Status : public StatusBase
+struct Status : public StatusBase
 {
-public:
+  bool reverse_lights = false;
   String ibusMessage;
   uint8_t ibusSend[0xFF] = {0x00};
-  int switches[SwitchCount];
-  long counts = 0;
-  bool reverseLights = false;
-  bool inverterPWR = false;
-  int collectors[CollectorCount];
+  char ike_display[25]; // extra char for strings
+  uint16_t maxBufferSizeIbus = 0;
+  bool ibus2mqtt_enabled = true;
+  bool can2mqtt_enabled = true;
 
-  int digipot1 = 0;
-  int digipot2 = 0;
-  double litres1 = 0;
-  double litres2 = 0;
-  double ohm_per_liter1 = 10;
-  double ohm_per_liter2 = 10;
-  int ikeFuelLevel = -1; // used for pot calibration, received from can bus
-
-  char *midVerb1 = "midVerb1 ";
-  char *midVerb2 = "midVerb2 ";
-  char *midReichw = "midReichw";
-  char *ikeVerb1 = "ikeVerb1 ";
-  char *ikeVerb2 = "ikeVerb2 ";
-  char *ikeReichw = "ikeReichw";
-
-  char ikeDisplay[25]; // extra char for strings
-
-  int sensors[SensorCount];
+  int sensors[SensorCount]{
+      -1, -1, -1, -1, -1, -1, -1, -1, -1};
+  int switches[SwitchCount]{
+      0, 0, 0, 0, 0, 0, 0, 0};
 
   JsonObject GenerateJson()
   {
     JsonObject root = this->PrepareRoot();
-    root["counts"] = counts;
-    root["inverterPWR"] = inverterPWR;
 
-    // TODO add display panel matrix data
-    JsonObject jdisplay = root.createNestedObject("display");
-    jdisplay["litres1"] = litres1;
-    jdisplay["litres2"] = litres2;
-    jdisplay["digipot1"] = digipot1;
-    jdisplay["digipot2"] = digipot2;
-    jdisplay["ohmPerLiter1"] = ohm_per_liter1;
-    jdisplay["ohmPerLiter2"] = ohm_per_liter2;
+    root["reverse_lights"] = reverse_lights;
+    root["ike_display"] = ike_display;
+    root["ibus2mqtt"] = intervals.Ibus2Mqtt;
+    root["ibus2mqtt_enabled"] = ibus2mqtt_enabled;
+    root["can2mqtt"] = intervals.Can2Mqtt;
+    root["can2mqtt_enabled"] = can2mqtt_enabled;
 
-    jdisplay["reverseLights"] = reverseLights;
-
-    jdisplay["ikeDisplay"] = ikeDisplay;
     JsonObject jsensors = root.createNestedObject("sensors");
     for (size_t i = 0; i < SensorCount; i++)
       jsensors[settings.sensors[i].name] = sensors[i];
 
-    JsonObject jcollectors = root.createNestedObject("collectors");
-    for (size_t i = 0; i < CollectorCount; i++)
-      jcollectors[settings.collectors[i].name] = collectors[i];
+    JsonObject jswitches = root.createNestedObject("switches");
+    for (size_t i = 0; i < SwitchCount; i++)
+      jswitches[settings.switches[i].name] = switches[i];
 
     return root;
   }

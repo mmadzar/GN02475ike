@@ -1,97 +1,91 @@
 #include <Arduino.h>
-#include <esp_wifi.h>
+#include "shared/WiFiOTA.h"
+#include "MqttMessageHandler.h"
 #include "appconfig.h"
 #include "status.h"
-#include "shared/WiFiOTA.h"
 #include "shared/MqttPubSub.h"
-#include "IBus.h"
+#include <string.h>
 #include "shared/Bytes2WiFi.h"
-#include "DigiPot.h"
-#include "Sensors.h"
+#include "IBus.h"
+#include "CanBus.h"
+#include "HC595165.h"
 
 Status status;
-Settings settings;
+Settings pins;
 Intervals intervals;
 WiFiSettings wifiSettings;
 WiFiOTA wota;
-IBus ibus;
 MqttPubSub mqtt;
+Bytes2WiFi bytesWiFi;
 Bytes2WiFi portSavvy;
-Bytes2WiFi portBytes;
-Bytes2WiFi portDebug;
-DigiPot dpot;
-Sensors sensors;
+Bytes2WiFi portSavvyCan;
+IBus ibus;
+HC595165 hc595165;
+CanBus can;
 
 long loops = 0;
 long lastLoopReport = 0;
 
 bool firstRun = true;
 
-int calibrationCounter = 0;
-int lastCalibrateCommand = 0; // miliseconds when last calibrate command was sent
-int lastValueFromIKE = 0;
-bool calibrationInProgress = false;
-int potToCalibrate = -1;
-int potInCalibration = -1;
-int currentPos = -1;
-int targetLitres = 0;
-int referentPotLitres = 0; // value that is set by referent pot. need to take away for targeting value. displayed from IKE when referent pot set to referent point.
-// inverter PWR
-bool lastInverterPWR = false;
-
 void setup()
 {
-  Serial.begin(115200);
-  pinMode(settings.led, OUTPUT);
+  SETTINGS.loadSettings();
+  hc595165.setup(mqtt);
+
+  pinMode(pins.led, OUTPUT);
+  // Serial.begin(115200);
+  // Serial.println("Serial started!");
   wota.setupWiFi();
   wota.setupOTA();
-  ibus.setup(portSavvy, portBytes, portDebug);
   mqtt.setup();
-  sensors.setup(mqtt);
-  portSavvy.setup(23);
-  portBytes.setup(24);
-  portDebug.setup(25);
-  dpot.setup();
+  portSavvy.setup(24);
+  bytesWiFi.setup(25);
+  ibus.setup(mqtt, portSavvy, bytesWiFi);
+
+  portSavvyCan.setup(23);
+  can.setup(mqtt, portSavvyCan);
 }
 
 void loop()
 {
   status.currentMillis = millis();
-  wota.handleWiFi();
-  wota.handleOTA();
-  if (!firstRun && loops % 10 == 0)
-  {
-    mqtt.handle();
-    dpot.handle();
-  }
-
-  // handle inverter pwr
-  if (status.inverterPWR != lastInverterPWR)
-  {
-    lastInverterPWR = status.inverterPWR;
-    mqtt.sendMessageToTopic("GN02475acc/in/msft1", (lastInverterPWR == true ? String(1) : String(0)));
-  }
-
-  ibus.handle();
-  sensors.handle();
-  portSavvy.handle();
-  portBytes.handle();
-  portDebug.handle();
-
-  if (!firstRun)
-    mqtt.publishStatus(true);
-
-  if (firstRun)
-    firstRun = false;
-
   if (status.currentMillis - lastLoopReport > 1000) // number of loops in 1 second - for performance measurement
   {
     lastLoopReport = status.currentMillis;
+    // Serial.print("Loops in a second: ");
+    // Serial.println(loops);
     status.loops = loops;
-    Serial.printf("Loops in a second %u\n", loops);
     loops = 0;
-
-    // report on IKE display
+    if (status.timeinfo.tm_year == 70)
+    {
+      getLocalTime(&(status.timeinfo), 10);
+      if (status.timeinfo.tm_year != 70)
+      {
+        strftime(status.upsince, sizeof(status.upsince), "%Y-%m-%d %H:%M:%S UTC", &(status.timeinfo));
+        strftime(status.connectedsince, sizeof(status.connectedsince), "%Y-%m-%d %H:%M:%S UTC", &(status.timeinfo));
+      }
+    }
   }
-  loops++;
+  else
+  {
+    loops++;
+  }
+
+  ibus.handle();
+  hc595165.handle();
+
+  wota.handleWiFi();
+  wota.handleOTA();
+  if (loops % 10 == 0) // check mqtt every 5th cycle
+    mqtt.handle();
+
+  can.handle();
+
+  bytesWiFi.handle();
+  portSavvyCan.handle();
+  portSavvy.handle();
+
+  mqtt.publishStatus(!firstRun);
+  firstRun = false;
 }

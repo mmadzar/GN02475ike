@@ -1,6 +1,13 @@
 #include "IBus.h"
+StaticJsonDocument<512> ikeDocJ;
+char tempBufferIke[512];
 long lastRemoteUnlockPress = 0;
 int monitorMessagesCount = 5;
+int lastB2Wsent = 0;
+int lastBinarySent = 0;
+Settings ikesettingsCollectors;
+MqttPubSub *mqttClientIKE;
+Settings settingsIkeCollectors;
 
 // define the message that we want to transmit
 // the message must be defined as an array of uint8_t's (unsigned 8-bit integers)
@@ -42,11 +49,11 @@ IBus::IBus()
 {
 }
 
-void IBus::setup(Bytes2WiFi &wifiport, Bytes2WiFi &portBytes, Bytes2WiFi &portDebug)
+void IBus::setup(class MqttPubSub &mqtt_client, Bytes2WiFi &wifiport, Bytes2WiFi &portBytes)
 {
+  mqttClientIKE = &mqtt_client;
   b2w = &wifiport;
   b2wbinary = &portBytes;
-  b2wdebug = &portDebug;
   // = {0x80, 0x00, 0xe7, 0x24, 0x04};
   midVERB1.pattern[0] = 0x80;
   midVERB1.pattern[1] = 0x00;
@@ -109,13 +116,6 @@ void IBus::setup(Bytes2WiFi &wifiport, Bytes2WiFi &portBytes, Bytes2WiFi &portDe
   monitored[5] = &midREICHW;
 
   ibusTrx.begin(Serial1); // begin listening for messages
-
-  monitored[0]->message = status.ikeVerb1;
-  monitored[1]->message = status.ikeVerb2;
-  monitored[2]->message = status.ikeReichw;
-  monitored[3]->message = status.midVerb1;
-  monitored[4]->message = status.midVerb2;
-  monitored[5]->message = status.midReichw;
 }
 
 void IBus::handle()
@@ -125,54 +125,6 @@ void IBus::handle()
     IbusMessage m = ibusTrx.readMessage(); // grab incoming messages
 
     uint8_t msize = m.length() - 1; // length byte includes destination
-
-    // check ignition status and pwr ON/OFF
-    if (m.source() == M_IKE && m.destination() == M_ALL && m.length() == 4 && m.b(0) == 0x11)
-    {
-      if (m.b(1) == 0x00)
-      {
-        // key off KL-30 - don't get that on GN02475
-      }
-      else if (m.b(1) == 0x01)
-      {
-        // key pos1 KL-R
-        // power OFF inverter using acc.msft1
-        status.inverterPWR = false; // msg sent in mqtt msg handler
-      }
-      else if (m.b(1) == 0x03)
-      {
-        // key pos2 KL-15
-        // power ON inverter using acc.msft1
-        status.inverterPWR = true; // msg sent in mqtt msg handler
-      }
-      else if (m.b(1) == 0x07)
-      {
-        // key pos3 - start - KL-50
-        // handled using signal from ignition directly on inverter start line
-      }
-    }
-
-    // if (msize > 5) // TODO include message length from message settings
-    // {
-    //   tempBusMsg[0] = m.source();
-    //   tempBusMsg[1] = m.length();
-    //   tempBusMsg[2] = m.destination();
-    //   // TODO include message length from message settings
-    //   tempBusMsg[3] = m.b(0);
-    //   tempBusMsg[4] = m.b(1);
-    //   for (size_t i = 0; i < monitorMessagesCount; i++)
-    //   {
-    //     if (monitored[i]->equals(tempBusMsg))
-    //     {
-    //       monitored[i]->received = true;
-    //       monitored[i]->replaced = false;
-    //       monitored[i]->timestamp = status.currentMillis;
-    //       // detected message
-    //       status.receivedCount++;
-    //     }
-    //   // }
-    // }
-
     uint32_t now = micros();
     b2wbinary->addBuffer(m.source());
     b2wbinary->addBuffer(m.length());
@@ -180,7 +132,11 @@ void IBus::handle()
     for (size_t i = 0; i < m.length() - 1; i++)
       b2wbinary->addBuffer(m.b(i));
     b2wbinary->addBuffer("\r\n", 2); // add new line for serial monitor
-    // b2wbinary->send();
+    if (status.currentMillis - lastBinarySent >= 50)
+    {
+      lastBinarySent = status.currentMillis;
+      b2wbinary->send();
+    }
 
     // format for sending to parse by SavvyCan
     uint32_t frameId = m.source();
@@ -204,29 +160,31 @@ void IBus::handle()
     for (int c = 0; c < (m.length() - 1) - 1; c++) // we don't need checksum and want complete message in serial
       b2w->addBuffer(m.b(c));
     b2w->addBuffer(0x0a); // in place of checksum - new line in serial monitor
-
-    // // open trunk window
-    // if (m.source() == M_GM5 && m.b(0) == 0x72 && m.b(1) == 0x22)
-    // {
-    //   long diffTime = status.currentMillis - lastRemoteUnlockPress;
-    //   if (lastRemoteUnlockPress == 0 || diffTime > 2000)
-    //   {
-    //     lastRemoteUnlockPress = status.currentMillis;
-    //     status.counts = 0;
-    //   }
-    //   else if (diffTime <= 2000)
-    //   {
-    //     lastRemoteUnlockPress = status.currentMillis;
-    //     status.counts++;
-    //     if (status.counts > 1)
-    //     {
-    //       ibusTrx.write(TrunkWindowUnlock);
-    //       lastRemoteUnlockPress = 0;
-    //       status.counts = 0;
-    //     }
-    //   }
-    // }
+    if (status.currentMillis - lastB2Wsent >= intervals.Ibus2Mqtt)
+    {
+      b2wbinary->send();
+      b2w->send();
+      lastB2Wsent = status.currentMillis;
+    }
   }
+
+  // send buffer to wifi and mqtt
+  if (status.maxBufferSizeIbus < b2w->position)
+    status.maxBufferSizeIbus = b2w->position;
+
+  if (b2w->position > 5)
+  {
+    long us = millis();
+    if (intervals.Ibus2Mqtt == 0 || b2w->position >= 1900 || ((us - lastSentIBusLog) > (uint64_t)intervals.Ibus2Mqtt))
+    {
+      lastSentIBusLog = us;
+      if (status.ibus2mqtt_enabled)
+        mqttClientIKE->sendBytesToTopic(String(wifiSettings.hostname) + "/out/ibus/raw", b2w->getContent(), b2w->position);
+      b2w->send();
+      b2w->position = 0; // reset buffer
+    }
+  }
+
   /*
     for (size_t i = 0; i < monitorMessagesCount; i++)
     {
@@ -332,25 +290,25 @@ void IBus::handle()
 
   */
   // update status every half a second if online
-  if (strcmp(status.SSID, "") != 0 && status.currentMillis - lastIkeDisplayUpdate > 500)
-  {
-    lastIkeDisplayUpdate = status.currentMillis;
-    bool displayChanged = false;
-    for (size_t i = 0; i < 21; i++)
-    {
-      if (IKEdisplay[i + 6] != (uint8_t)status.ikeDisplay[i])
-      {
-        IKEdisplay[i + 6] = (uint8_t)status.ikeDisplay[i];
-        displayChanged = true;
-      }
-    }
+  // if (status.currentMillis - lastIkeDisplayUpdate > 250)
+  // {
+  //   lastIkeDisplayUpdate = status.currentMillis;
+  //   bool displayChanged = false;
+  //   for (size_t i = 0; i < 21; i++)
+  //   {
+  //     if (IKEdisplay[i + 6] != (uint8_t)status.ikeDisplay[i])
+  //     {
+  //       IKEdisplay[i + 6] = (uint8_t)status.ikeDisplay[i];
+  //       displayChanged = true;
+  //     }
+  //   }
 
-    // !!!!!!!!!!!!! increased tx buffer size in ibustrx from 16 to 64 to accept longer messages
-    if (displayChanged)
-    {
-      ibusTrx.write(IKEdisplay);
-    }
-  }
+  //   // !!!!!!!!!!!!! increased tx buffer size in ibustrx from 16 to 64 to accept longer messages
+  //   if (displayChanged)
+  //   {
+  //     ibusTrx.write(IKEdisplay);
+  //   }
+  // }
 
   if (status.ibusSend[1] != 0x00)
   {
@@ -359,9 +317,9 @@ void IBus::handle()
   }
 
   // check for reverse gear select and turn on reverse lights on/off
-  if (status.reverseLights != lastReverseLights)
+  if (status.currentMillis > 5000 && (status.sensors[0] < 1) != lastReverseLights)
   {
-    lastReverseLights = status.reverseLights;
+    lastReverseLights = status.sensors[0] < 0;
     if (lastReverseLights)
     {
       ibusTrx.write(ReverseLightsOn);
@@ -370,15 +328,13 @@ void IBus::handle()
     else
     {
       ibusTrx.write(ReverseLightsOff);
-      status.counts = 0;
     }
     status.receivedCount++;
   }
-  else if (status.reverseLights && status.currentMillis - reverseLightsLastSent > 10000)
+  else if (status.sensors[0] < 1 && status.currentMillis - reverseLightsLastSent > 10000)
   {
     // sending ON command eveery 10 seconds as DIA command has effect around 15s
     ibusTrx.write(ReverseLightsOn);
     reverseLightsLastSent = status.currentMillis;
-    status.counts++;
   }
 }
