@@ -159,7 +159,12 @@ void IBus::handle()
     b2w->addBuffer(m.destination());
     for (int c = 0; c < (m.length() - 1) - 1; c++) // we don't need checksum and want complete message in serial
       b2w->addBuffer(m.b(c));
-    b2w->addBuffer(0x0a); // in place of checksum - new line in serial monitor
+    b2w->addBuffer(now >> 32);
+    b2w->addBuffer(now >> 40);
+    b2w->addBuffer(now >> 48);
+    b2w->addBuffer(now >> 56);
+    b2w->addBuffer(0x00);
+
     if (status.currentMillis - lastB2Wsent >= intervals.Ibus2Mqtt)
     {
       b2wbinary->send();

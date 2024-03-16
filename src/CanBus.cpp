@@ -41,10 +41,19 @@ void CanBus::handle()
     b2w->addBuffer(frame.id >> 8);
     b2w->addBuffer(frame.id >> 16);
     b2w->addBuffer(frame.id >> 24);
-    b2w->addBuffer(frame.length + (uint8_t)(((int)1) << 4)); // 2 ibus address
+    b2w->addBuffer(frame.length + (uint8_t)(((int)0) << 4)); // 0 can bus address
     for (int c = 0; c < frame.length; c++)
       b2w->addBuffer(frame.data.uint8[c]);
-    b2w->addBuffer(0x0a); // new line in serial monitor
+    // add missing to 8 bytes for easy parsing
+    for (int c = 0; c < (8 - frame.length); c++)
+      b2w->addBuffer(0x00);
+
+    // time second part
+    b2w->addBuffer(now >> 32);
+    b2w->addBuffer(now >> 40);
+    b2w->addBuffer(now >> 48);
+    b2w->addBuffer(now >> 56);
+    b2w->addBuffer(0x00); // new line for SavvyCan and serial monitor
   }
   if (b2w->position > 5 && (status.currentMillis - lastSentCanLog >= intervals.Can2Mqtt || b2w->position >= 1900))
   {
